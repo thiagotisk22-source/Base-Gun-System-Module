@@ -151,9 +151,13 @@ local FOV_Config = { -- FOV Settings
 	}
 }
 
+type Animations = {
+	Idle: Animation?,
+	--you can add more animations
+}
+
 local GunModule = {}
 GunModule.__index = GunModule
-
 
 
 --[[Create and returns the gun object with the given parameters
@@ -171,7 +175,18 @@ GunModule.__index = GunModule
 		{Idle = script.Animations.Idle}
 	)
 ]]
-function GunModule.newGun(name, damage, fireRate, spread, magazineSize, reloadTime, Model, fireMode, animations)
+function GunModule.newGun(
+	name: string,
+	damage: number,
+	fireRate: number,
+	spread: number,
+	magazineSize: number,
+	reloadTime: number,
+	Model: Model,
+	fireMode: string,
+	animations: Animations
+	)
+	
 	local gun = setmetatable({}, GunModule)
 	gun.Name = name
 	gun.Damage = damage
@@ -189,7 +204,9 @@ function GunModule.newGun(name, damage, fireRate, spread, magazineSize, reloadTi
 	
 	gun.ReloadTime = reloadTime
 	gun.Aiming = false
-	gun.Animations = animations
+	
+	--create a empty table if animations is nil
+	gun.Animations = animations or {}
 	
 	gun.BindableEvents = {
 		Equipped = Instance.new("BindableEvent"),
