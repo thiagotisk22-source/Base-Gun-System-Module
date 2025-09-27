@@ -1,9 +1,140 @@
+--Base Gun Module
+
+--[[
+	---------------------------
+	------HOW TO USE:---------
+	--------------------------
+
+	(example in a local script inside a tool):
+
+	Example of a Pistol or a Burst-Fire Rifle:
+			
+			local UserInputService = game:GetService("UserInputService")
+	
+			local name = "Pistol"
+			local damage = 15
+			local fireRate = 0.2
+			local spread = 1
+			local magazineSize = 12
+			local reloadTime = 2.5
+			local Model = game.ReplicatedStorage.Guns:WaitForChild("Pistol")
+			local fireMode = "Semi-Auto" (or "Bust-Fire")
+			local animations = {Idle = script.Animations.Idle}
+
+			local pistol = require(path of the gun module).newGun(
+				name,
+				damage,
+				fireRate,
+				spread,
+				magazineSize,
+				reloadTime,
+				Model,
+				fireMode,
+				animations
+			)
+			
+			local Tool = script.Parent
+			local Character = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
+			
+			Tool.Equipped:Connect(function()
+				pistol:Equip(Character)
+			end)
+			
+			Tool.Unequipped:Connect(function()
+				pistol:Unequip(Character)
+			end)
+			
+			Tool.Activated:Connect(function()
+				pistol:Fire()
+			end)
+			
+			UserInputService.InputBegan:Connect(function(Input, GPE)
+				if GPE then return end
+			
+				if Input.UserInputType == Enum.UserInputType.MouseButton2 then
+					pistol:ToggleAim(true)
+				end
+				
+				if Input.KeyCode == Enum.KeyCode.R then
+					pistol:Reload()
+				end
+			end)
+			
+			UserInputService.InputEnded:Connect(function(Input, GPE)
+				if Input.UserInputType == Enum.UserInputType.MouseButton2 then
+					pistol:ToggleAim(false)
+				end
+			end)
+			
+			
+	Example of a SMG or a Auto Rifle:
+	
+			local UserInputService = game:GetService("UserInputService")
+	
+			local name = "SMG"
+			local damage = 8
+			local fireRate = 0.08
+			local spread = 1.5
+			local magazineSize = 30
+			local reloadTime = 2.5
+			local Model = game.ReplicatedStorage.Guns:WaitForChild("Pistol")
+			local fireMode = "Auto"
+			local animations = {Idle = script.Animations.Idle}
+
+			local smg = require(path of the gun module).newGun(
+				name,
+				damage,
+				fireRate,
+				spread,
+				magazineSize,
+				reloadTime,
+				Model,
+				fireMode,
+				animations
+			)
+			
+			local Tool = script.Parent
+			local Character = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
+			
+			Tool.Equipped:Connect(function()
+				pistol:Equip(Character)
+			end)
+			
+			Tool.Unequipped:Connect(function()
+				pistol:Unequip(Character)
+			end)
+			
+			UserInputService.InputBegan:Connect(function(Input, GPE)
+				if GPE then return end
+			
+				if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+					smg:Click(true)
+				elseif Input.UserInputType == Enum.UserInputType.MouseButton2 then
+					smg:ToggleAim(true)
+				end
+				
+				if Input.KeyCode == Enum.KeyCode.R then
+					smg:Reload()
+				end
+			end)
+			
+			UserInputService.InputEnded:Connect(function(Input, GPE)
+				if Input.UserInputType == Enum.UserInputType.MouseButton2 then
+					smg:Click(false)
+				elseif Input.UserInputType == Enum.UserInputType.MouseButton2 then
+					smg:ToggleAim(false)
+				end
+			end)
+	
+]]
+
+--TweenService: used for animating values and objects etc
 local TweenService = game:GetService("TweenService")
 
-local Player = game.Players.LocalPlayer
-local Mouse = Player:GetMouse()
+local Player = game.Players.LocalPlayer -- The player
+local Mouse = Player:GetMouse() -- Getting the player's mouse
 
-local GunUI = Player.PlayerGui:WaitForChild("GunUI", 10)
+local GunUI = Player.PlayerGui:WaitForChild("GunUI", 10) -- Waiting for GunUI to load in maximun of 10 seconds
 
 local Camera = workspace.CurrentCamera
 
@@ -32,7 +163,7 @@ function GunModule.newGun(name, damage, fireRate, spread, magazineSize, reloadTi
 	gun.Model = Model
 	gun.FireMode = fireMode
 	gun.LastShotTime = 0
-	gun.Holding = fireMode == "Auto" and false
+	gun.Holding = fireMode == "Auto" and false --if the gun is in Auto, then holding will be false, if not, then holding will be nil
 	gun.ReloadTime = reloadTime
 	gun.Aiming = false
 	gun.Animations = animations
@@ -47,42 +178,51 @@ end
 
 function GunModule:CheckHumanoid()
 	if not self.Character then return end  -- check if character exists
-	local Humanoid = self.Character:FindFirstChild("Humanoid")
+	local Humanoid = self.Character:FindFirstChild("Humanoid") -- find the Humanoid inside character
 	if not Humanoid then return end -- check if humanoid exists
 	if Humanoid.Health <= 0 then return end -- check if humanoid is alive
+	
+	--if everthing is fine, then return true
 	return true
 end
 
 function GunModule:CanShoot()
 	--Check if player can shoot with the gun
-	if not self:CheckHumanoid() then return end
+	if not self:CheckHumanoid() then return end  -- check if character exists
 	if not self:IsEquipped() then return end -- check if player has the gun equipped
 	if self:GetAmmo() <= 0 then -- check if gun is out of ammo
+		--task.spawn() for the reload not interrupt the rest of the code
 		task.spawn(function()
 			self:Reload()
 		end)
 		return
 	end
 	if self:IsReloading() then return end -- check if gun is reloading
-	if self.BurstCooldown then return end
-
+	if self.BurstCooldown then return end -- check if gun is in burst cooldown
+	
+	--if everthing is fine, then return true
 	return true
 end
 
 function GunModule:CanReload()
 	--check if player can reload
-	if not self:CheckHumanoid() then return end
-	if not self:IsEquipped() then return end
+	if not self:CheckHumanoid() then return end  -- check if character exists
+	if not self:IsEquipped() then return end -- check if the gun is equipped
 	if self:IsReloading() then return end -- check if gun is already reloading
 	if self:GetAmmo() >= self.MagazineSize then return end -- check if currentAmmo is full
 	if self.MaxAmmo <= 0 then return end -- check if maxAmmo is not 0
 
+	--if everthing is fine, then return true
 	return true
 end
 
 function GunModule:CalculateSpread()
-	local random = Random.new()
-	local offset = self.Spread -- get the spread from the gun config
+	local random = Random.new() -- create the random object
+	
+	-- get the spread from the gun config
+	local offset = self.Spread
+	
+	--get a random number between the negative offset and offset to every axis and return the vector
 	return Vector3.new(
 		random:NextNumber(-offset, offset),
 		random:NextNumber(-offset, offset),
@@ -92,7 +232,8 @@ end
 
 function GunModule:GetAmmo()
 	--Get the current ammo of the gun
-	if not self.EquippedModel then return 0 end
+	if not self:EquippedModel() then return end -- checking if the gun is equipped
+
 	return self.CurrentAmmo
 end
 
@@ -138,19 +279,26 @@ function GunModule:Equip(Character: Model) -- Called when player equipp the gun 
 	--Set the gun's Motor6D to the character's right hand
 	gunModel.HandleJoint.Part0 = Character["RightHand"]
 	
+	-- set the EquippedModel to the new cloned model
 	self.EquippedModel = gunModel
+	
+	--Set the character to the character that equipped the gun
 	self.Character = Character
 	
+	-- gets all animations from the gun
 	for i, animation in pairs(self.Animations) do
+		-- check if animation value is an Animation class
 		if animation:IsA("Animation") then
-			self.Animations[i] = Humanoid:LoadAnimation(animation) -- load animations
+			-- load animations to humanoid
+			self.Animations[i] = Humanoid:LoadAnimation(animation)
 		end
 	end
 	
+	--play idle gun's animation
 	self.Animations.Idle:Play()
-	
+	--enable the gun's UI
 	self:EnableUI()
-	
+	--bind the gun's events
 	self.BindableEvents.Equipped:Fire()
 end
 
@@ -163,16 +311,21 @@ function GunModule:Unequip(Character: Model) -- Called when player unequip the g
 	if not Humanoid then return end -- check if humanoid exists
 	if Humanoid.Health <= 0 then return end -- check if humanoid is alive
 	
+	--stoping the gun's idle animation
 	self.Animations.Idle:Stop()
 	
-	--Destroy the gun's model from the character
+	--Destroy the gun's model from the character if it exists
 	if self.EquippedModel then
+		
+		--destroying the gun's model
 		self.EquippedModel:Destroy()
 		self.EquippedModel = nil
 	end
 	
+	--set the character to nil
 	self.Character = nil
 	
+	--disabling the UI
 	self:DisableUI()
 	
 	self.BindableEvents.Unequipped:Fire()
@@ -180,18 +333,26 @@ end
 
 function GunModule:Shoot()
 	--Shoot function
+	
+	--checking if you can shoot
 	if not self:CanShoot() then return end
 
+	-- getting current time
 	local now = os.clock()
-	if now - (self.LastShotTime or 0) < self.FireRate then return end -- check FireRate cooldown
 	
-	if self.FireMode == "Burst-Fire" then -- do burst fire cooldown
+	-- checking if the lastShotTime is less than fire rate
+	if now - (self.LastShotTime or 0) < self.FireRate then return end
+	
+	--checking if the gun is in burst fire mode
+	if self.FireMode == "Burst-Fire" then
 		self.BurstShoots = self.BurstShoots or 0 -- if BurstShoots is nil, set it to 0
-		self.BurstShoots += 1
+		self.BurstShoots += 1 -- increase burst shots by 1
 		
 		if self.BurstShoots >= 3 then -- check if player has shot 3 times
 			self.BurstCooldown = true
-			task.delay(self.FireRate + 0.15, function() -- burst cooldown after shot 3 times
+			
+			-- burst cooldown after shot 3 times
+			task.delay(self.FireRate + 0.15, function()
 				self.BurstCooldown = false
 			end)
 			
@@ -199,45 +360,61 @@ function GunModule:Shoot()
 		end
 	end
 	
-	self.LastShotTime = now -- set LastShotTime as current now
-	self.CurrentAmmo = math.clamp(self:GetAmmo() - 1, 0, self.MagazineSize) -- decrease ammo
+	-- set LastShotTime as the current time
+	self.LastShotTime = now
 	
-	self:UpdateUI()
-	self.EquippedModel.Handle.FireAttachment.Sound.PlaybackSpeed = Random.new():NextNumber(0.95, 1.05) -- random speed
-	self.EquippedModel.Handle.FireAttachment.Sound:Play() -- play fire sound
+	self.CurrentAmmo = math.clamp(self:GetAmmo() - 1, 0, self.MagazineSize) -- decrease ammo (the min is 0 and max is the magazine size)
+	
+	self:UpdateUI() -- Updating UI to chaning the ammo text
+	self.EquippedModel.Handle.FireAttachment.Sound.PlaybackSpeed = Random.new():NextNumber(0.95, 1.05) -- random number between 0.95-1.05
+	self.EquippedModel.Handle.FireAttachment.Sound:Play() -- play fire sound that its inside of the fire attachment
 	
 	local raycastParams = RaycastParams.new()
 	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+	
+	-- making the Character not collidable with the raycast
 	raycastParams.FilterDescendantsInstances = {self.EquippedModel.Parent}
 	
+	--Getting the mouse point position
 	local MousePos = Mouse.Hit.Position
 	
 	--Create a random spread offset
 	local spreadOffset = self:CalculateSpread() 
 	MousePos += spreadOffset
 	
-	local origin = self.EquippedModel.Handle.FireAttachment.WorldPosition -- get origin of raycast
-	local direction = CFrame.new(origin, MousePos) -- get direction of raycast
+	-- get origin of raycast
+	local origin = self.EquippedModel.Handle.FireAttachment.WorldPosition
+	
+	-- get direction of raycast
+	local direction = CFrame.new(origin, MousePos)
+	
+	--multiply the front direction of the cframe to 1000
 	direction = direction.LookVector * 1000
 	
 	local Target = nil
 	
 	local raycast = workspace:Raycast(origin, direction, raycastParams) -- create raycast
+	
+	-- checking if raycast has hit something
 	if raycast then
 		if raycast.Instance.Parent:IsA("Accessory") then -- verify if raycast instance is an accessory
 			if raycast.Instance.Parent.Parent:FindFirstChild("Humanoid") then
-				Target = raycast.Instance.Parent.Parent
+				Target = raycast.Instance.Parent.Parent -- the instance parent is accessory, so the target is the parent of instance parent
 			end
 		else
 			if raycast.Instance.Parent:FindFirstChild("Humanoid") then -- verify if raycast instance is not an accessory
-				Target = raycast.Instance.Parent
+				Target = raycast.Instance.Parent  -- the instance parent has a humanoid, so the target is the instance parent
 			end
 		end
 		
-		local instanceTargetPart = Instance.new("Part", workspace) -- create instance target part
+		-- create instance target part
+		local instanceTargetPart = Instance.new("Part", workspace)
 		game.Debris:AddItem(instanceTargetPart, 0.35)
 		instanceTargetPart.Name = "Target"
+		
+		-- position it on the raycast's target position
 		instanceTargetPart.Position = raycast.Position
+		
 		instanceTargetPart.Size = Vector3.new(1,1,1)
 		instanceTargetPart.Shape = Enum.PartType.Ball
 		instanceTargetPart.Anchored = true
@@ -256,6 +433,8 @@ function GunModule:Shoot()
 	end
 	
 	if self:GetAmmo() <= 0 then -- Reload if no ammo
+		
+		--task.spawn() for the reload not interrupt the rest of the code
 		task.spawn(function()
 			self:Reload()
 		end)
@@ -270,24 +449,26 @@ function GunModule:Click(holdBool) -- Called when MouseButton1 is clicked
 		--Fires a single bullet
 		self:Shoot(self)
 	elseif self.FireMode == "Burst-Fire" then
-		--Fires 3 bullets per round 
+		--Fires 3 bullets per round
+		--task.spawn() for the for i, loop not interrupt the rest of the code
 		task.spawn(function()
+			-- checking if its not in burst cooldown
 			if self.BurstCooldown then return end
 			
-			for i = 1, 3 do
-				if not self.BurstCooldown then
+			for i = 1, 3 do -- Fires 3 bullets
+				if not self.BurstCooldown then -- checking again to prevent bugs
 					self:Shoot(self)
 				end
-				task.wait(self.FireRate)
+				task.wait(self.FireRate) --wait for the fire rate seconds, I value increase when this second passes
 			end
 		end)
 	elseif self.FireMode == "Auto" then
 		--Fires continuously until the gun is unequipped or the gun is out of ammo
 		self.Holding = holdBool
-		task.spawn(function()
+		task.spawn(function() -- this is for the Loop not interrupt the Click function
 			repeat
 				self:Shoot(self)
-				task.wait(self.FireRate)
+				task.wait(self.FireRate) --wait for the fire rate seconds
 			until not self:CheckHumanoid() or not self.EquippedModel or self:GetAmmo() <= 0 or not self.Holding -- cancell if gun is unequipped or gun is out of ammo or holding is false
 		end)
 	end
@@ -295,25 +476,25 @@ end
 
 function GunModule:Reload() -- Called when R key is pressed
 	--Reload the gun
-	if not self:CanReload() then return end
+	if not self:CanReload() then return end -- stop if the gun is reloading or the gun is out of mag
 	
 	self:CancelAim() -- force cancel aim
 	
 	print("Reloading")
-	self.Reloading = true
+	self.Reloading = true -- Set state to reloading
 	
 	GunUI.Frame.AmmoLabel.Text = "-/" .. self.MaxAmmo
 	self.EquippedModel.Handle.FireAttachment.Reload:Play() -- play reload sound
 	
 	self.BindableEvents.Reloading:Fire()
 	
-	local ReloadCancelled = false
+	local ReloadCancelled = false --This is for checking if the reload was cancelled or not
 	
 	local UnequippedConnection = nil
 	UnequippedConnection =  self.BindableEvents.Unequipped.Event:Connect(function() -- Detect if gun is unequipped while reloading
 		--cancell reload
-		if self:IsReloading() then
-			UnequippedConnection:Disconnect()
+		if self:IsReloading() then --if the player unequipped the gun and is still reloading then reload will be cancelled
+			UnequippedConnection:Disconnect() -- disconnecting the Connection
 			UnequippedConnection = nil
 			
 			ReloadCancelled = true
@@ -324,22 +505,22 @@ function GunModule:Reload() -- Called when R key is pressed
 	end)
 	
 	task.delay(self.ReloadTime, function() -- reloadTime of animation
-		if not ReloadCancelled then
+		if not ReloadCancelled then -- checking if its not cancelled
 			if self.MaxAmmo < self.MagazineSize then
 				self.CurrentAmmo = self.MaxAmmo -- set currentAmmo to maxAmmo only if maxAmmo is less than magazineSize
 			else
 				self.CurrentAmmo = self.MagazineSize -- set current ammo to magazineSize
 			end
 
-			self.MaxAmmo = math.clamp(self.MaxAmmo - self.MagazineSize, 0, math.huge)
+			self.MaxAmmo = math.clamp(self.MaxAmmo - self.MagazineSize, 0, math.huge) -- the min is 0 and max is inf
 
-			print("Reloaded")
+			print("Reloaded") -- debugging
 
-			self:UpdateUI()
-			self.Reloading = false
+			self:UpdateUI() -- Updating the UI after reloading to change the ammo text
+			self.Reloading = false -- set state to not reloading
 
-			if UnequippedConnection then
-				UnequippedConnection:Disconnect()
+			if UnequippedConnection then -- checking if the connection is still there
+				UnequippedConnection:Disconnect() -- disconnecting the Connection
 				UnequippedConnection = nil
 			end
 		end
@@ -348,14 +529,14 @@ end
 
 function GunModule:Aim()
 	--start aiming
-	self.Aiming = true
+	self.Aiming = true -- set Aiming to false
 	TweenService:Create(Camera, FOV_Config.TweenInfo, {FieldOfView = FOV_Config.FOVS.AimFOV}):Play() -- animate the FOV to aim FOV
 	print("Aiming")
 end
 
 function GunModule:CancelAim()
 	--stop aiming
-	self.Aiming = false
+	self.Aiming = false -- set Aiming to true
 	TweenService:Create(Camera, FOV_Config.TweenInfo, {FieldOfView = FOV_Config.FOVS.NormalFOV}):Play() -- animate the FOV to normal
 	print("Not aiming")
 end
@@ -365,6 +546,9 @@ function GunModule:ToggleAim(bool) -- Called when MouseButton2 is holded
 	if not self:IsEquipped() then return end
 	if self:IsReloading() then return end
 	
+	--bool is true if player is holding RMB
+	--bool is false if player is NOT holding RMB
+	
 	if not bool then
 		self:CancelAim()
 	else
@@ -372,7 +556,7 @@ function GunModule:ToggleAim(bool) -- Called when MouseButton2 is holded
 	end
 end
 
-function GunModule:ResetGun() -- Debug
+function GunModule:ResetGun() -- Debug function only
 	--Reset the gun
 	self.FireMode = "Semi-Auto"
 	self.CurrentAmmo = self.MagazineSize
