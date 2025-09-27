@@ -131,11 +131,16 @@
 --TweenService: used for animating values and objects etc
 local TweenService = game:GetService("TweenService")
 
-local Player = game.Players.LocalPlayer -- The player
-local Mouse = Player:GetMouse() -- Getting the player's mouse
+-- Our player
+local Player = game.Players.LocalPlayer
 
-local GunUI = Player.PlayerGui:WaitForChild("GunUI", 10) -- Waiting for GunUI to load in maximun of 10 seconds
+-- Getting the player's mouse
+local Mouse = Player:GetMouse()
 
+-- Waiting for GunUI to load in maximun of 10 seconds
+local GunUI = Player.PlayerGui:WaitForChild("GunUI", 10)
+
+--Getting our camera
 local Camera = workspace.CurrentCamera
 
 local FOV_Config = { -- FOV Settings
@@ -149,9 +154,24 @@ local FOV_Config = { -- FOV Settings
 local GunModule = {}
 GunModule.__index = GunModule
 
-function GunModule.newGun(name, damage, fireRate, spread, magazineSize, reloadTime, Model, fireMode, animations) -- called from a local script
-	--Creates the gun object with the given parameters
-	
+
+
+--[[Create and returns the gun object with the given parameters
+	Example:
+
+	local gun = require(path of the gun module).newGun(
+		"Pistol",
+		10,
+		0.2,
+		1,
+		15,
+		1,
+		game.ReplicatedStorage.Gun,
+		"Semi-Auto",
+		{Idle = script.Animations.Idle}
+	)
+]]
+function GunModule.newGun(name, damage, fireRate, spread, magazineSize, reloadTime, Model, fireMode, animations)
 	local gun = setmetatable({}, GunModule)
 	gun.Name = name
 	gun.Damage = damage
@@ -163,10 +183,14 @@ function GunModule.newGun(name, damage, fireRate, spread, magazineSize, reloadTi
 	gun.Model = Model
 	gun.FireMode = fireMode
 	gun.LastShotTime = 0
-	gun.Holding = fireMode == "Auto" and false --if the gun is in Auto, then holding will be false, if not, then holding will be nil
+	
+	--if the gun is in Auto, then holding will be false, if not, then holding will be nil
+	gun.Holding = fireMode == "Auto" and false
+	
 	gun.ReloadTime = reloadTime
 	gun.Aiming = false
 	gun.Animations = animations
+	
 	gun.BindableEvents = {
 		Equipped = Instance.new("BindableEvent"),
 		Unequipped = Instance.new("BindableEvent"),
@@ -176,6 +200,8 @@ function GunModule.newGun(name, damage, fireRate, spread, magazineSize, reloadTi
 	return gun
 end
 
+
+--Used for checking if the character and humanoid is alive
 function GunModule:CheckHumanoid()
 	if not self.Character then return end  -- check if character exists
 	local Humanoid = self.Character:FindFirstChild("Humanoid") -- find the Humanoid inside character
@@ -186,8 +212,9 @@ function GunModule:CheckHumanoid()
 	return true
 end
 
+
+--Used for checking if the gun can shoot
 function GunModule:CanShoot()
-	--Check if player can shoot with the gun
 	if not self:CheckHumanoid() then return end  -- check if character exists
 	if not self:IsEquipped() then return end -- check if player has the gun equipped
 	if self:GetAmmo() <= 0 then -- check if gun is out of ammo
@@ -204,8 +231,9 @@ function GunModule:CanShoot()
 	return true
 end
 
+
+--Used for checking if the gun can reload
 function GunModule:CanReload()
-	--check if player can reload
 	if not self:CheckHumanoid() then return end  -- check if character exists
 	if not self:IsEquipped() then return end -- check if the gun is equipped
 	if self:IsReloading() then return end -- check if gun is already reloading
@@ -216,6 +244,8 @@ function GunModule:CanReload()
 	return true
 end
 
+
+--Used for creating a random direction for the bullet
 function GunModule:CalculateSpread()
 	local random = Random.new() -- create the random object
 	
@@ -230,42 +260,58 @@ function GunModule:CalculateSpread()
 	)
 end
 
+
+--Used for getting the gun's current ammo
 function GunModule:GetAmmo()
-	--Get the current ammo of the gun
 	if not self:EquippedModel() then return end -- checking if the gun is equipped
 
 	return self.CurrentAmmo
 end
 
+
+--Used for checking and getting the gun's equipped model
 function GunModule:IsEquipped()
-	--check if player has the gun equipped
 	return self.EquippedModel
 end
 
+
+--Used for checking if the gun is reloading
 function GunModule:IsReloading()
 	--check if is reloading
 	return self.Reloading
 end
 
+
+--Used for updating the gun UI
 function GunModule:UpdateUI()
-	--update Gun UI
 	GunUI.Frame.GunNameLabel.Text = self.Name
 	GunUI.Frame.AmmoLabel.Text = self:GetAmmo().."/"..self.MaxAmmo
 	GunUI.Frame.GunFireModeLabel.Text = self.FireMode
 end
 
+
+--Used for enabling the gun UI
 function GunModule:EnableUI()
-	-- enable Gun UI
 	self:UpdateUI()
 	GunUI.Enabled = true
 end
 
+
+--Used for disabling the gun UI
 function GunModule:DisableUI()
-	-- disable Gun UI
 	GunUI.Enabled = false
 end
 
-function GunModule:Equip(Character: Model) -- Called when player equipp the gun tool
+
+
+--[[Used for Equipping the gun, using a Character parameter (
+	Example:
+	
+	Tool.Equipped:Connect(function()
+		gun:Equip(Character)
+	end)
+)]]
+function GunModule:Equip(Character: Model)
 	--Equip the gun
 	if not Character then return end -- check if character exists
 	local Humanoid = Character:FindFirstChild("Humanoid")
@@ -302,7 +348,16 @@ function GunModule:Equip(Character: Model) -- Called when player equipp the gun 
 	self.BindableEvents.Equipped:Fire()
 end
 
-function GunModule:Unequip(Character: Model) -- Called when player unequip the gun tool
+
+
+--[[Used for UNEQUIPPING the gun, using a Character parameter (
+	Example:
+	
+	Tool.Unequipped:Connect(function()
+		gun:Unequip(Character)
+	end)
+)]]
+function GunModule:Unequip(Character: Model)
 	--Unequip the gun
 	self:CancelAim() -- force cancel aim
 	
@@ -331,6 +386,9 @@ function GunModule:Unequip(Character: Model) -- Called when player unequip the g
 	self.BindableEvents.Unequipped:Fire()
 end
 
+
+
+--The Shoot function that will be called by :Click() function
 function GunModule:Shoot()
 	--Shoot function
 	
@@ -441,6 +499,31 @@ function GunModule:Shoot()
 	end
 end
 
+
+
+--[[Used for shoot with the gun (
+	Example: if the gun is Semi-Auto or Burst-Fire, you can do this:
+	
+	Tool.Activated:Connect(function()
+		gun:Click() -- no need of the boolean
+	end)
+	
+	if the gun is Auto, you can do this:
+	
+	--here you need to use the boolean
+	
+	UserInputService.InputBegan:Connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+			gun:Click(true)
+		end
+	end)
+	
+	UserInputService.InputEnded:Connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+			gun:Click(false)
+		end
+	end)
+)]]
 function GunModule:Click(holdBool) -- Called when MouseButton1 is clicked
 	--Shoot with the gun
 	
@@ -474,6 +557,17 @@ function GunModule:Click(holdBool) -- Called when MouseButton1 is clicked
 	end
 end
 
+
+
+--[[Used for reloading the gun (
+	Example:
+	
+	UserInputType.InputBegan:Connect(function(Input)
+		if Input.KeyCode == Enum.KeyCode.R then
+			gun:Reload()
+		end
+	end)
+]]
 function GunModule:Reload() -- Called when R key is pressed
 	--Reload the gun
 	if not self:CanReload() then return end -- stop if the gun is reloading or the gun is out of mag
@@ -529,6 +623,8 @@ function GunModule:Reload() -- Called when R key is pressed
 	end)
 end
 
+
+--Called by ToggleAim function
 function GunModule:Aim()
 	--start aiming
 	
@@ -541,6 +637,8 @@ function GunModule:Aim()
 	print("Aiming")
 end
 
+
+--Called by ToggleAim function or Forced by Unequip function or Reload function
 function GunModule:CancelAim()
 	--stop aiming
 	
@@ -553,6 +651,23 @@ function GunModule:CancelAim()
 	print("Not aiming")
 end
 
+
+
+--[[Used for aiming with the gun
+	Example:
+	
+	UserInputService.InputBegan:Connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton2 then
+			gun:ToggleAim(true)
+		end
+	end)
+	
+	UserInputService.InputEnded:Connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton2 then
+			gun:ToggleAim(false)
+		end
+	end)
+]]
 function GunModule:ToggleAim(bool) -- Called when MouseButton2 is holded
 	--toggle aim with the gun
 	if not self:IsEquipped() then return end
@@ -568,7 +683,9 @@ function GunModule:ToggleAim(bool) -- Called when MouseButton2 is holded
 	end
 end
 
-function GunModule:ResetGun() -- Debug function only
+
+--This is used for debbugging the gun
+function GunModule:ResetGun()
 	--Reset the gun
 	self.FireMode = "Semi-Auto"
 	self.CurrentAmmo = self.MagazineSize
