@@ -18,7 +18,7 @@
 			local magazineSize = 12
 			local reloadTime = 2.5
 			local Model = game.ReplicatedStorage.Guns:WaitForChild("Pistol")
-			local fireMode = "Semi-Auto" (or "Bust-Fire")
+			local fireMode = "Semi-Auto" --(or "Bust-Fire")
 			local animations = {Idle = script.Animations.Idle}
 
 			local pistol = require(path of the gun module).newGun(
@@ -511,10 +511,12 @@ function GunModule:Reload() -- Called when R key is pressed
 			else
 				self.CurrentAmmo = self.MagazineSize -- set current ammo to magazineSize
 			end
+			
+			--the min is 0 and max is inf
+			self.MaxAmmo = math.clamp(self.MaxAmmo - self.MagazineSize, 0, math.huge)
 
-			self.MaxAmmo = math.clamp(self.MaxAmmo - self.MagazineSize, 0, math.huge) -- the min is 0 and max is inf
-
-			print("Reloaded") -- debugging
+			--debugging
+			print("Reloaded")
 
 			self:UpdateUI() -- Updating the UI after reloading to change the ammo text
 			self.Reloading = false -- set state to not reloading
@@ -529,15 +531,25 @@ end
 
 function GunModule:Aim()
 	--start aiming
-	self.Aiming = true -- set Aiming to false
+	
+	-- set Aiming to false
+	self.Aiming = true
+	
 	TweenService:Create(Camera, FOV_Config.TweenInfo, {FieldOfView = FOV_Config.FOVS.AimFOV}):Play() -- animate the FOV to aim FOV
+	
+	--debugging
 	print("Aiming")
 end
 
 function GunModule:CancelAim()
 	--stop aiming
-	self.Aiming = false -- set Aiming to true
+	
+	-- set Aiming to true, so you can start aiming again
+	self.Aiming = false
+	
 	TweenService:Create(Camera, FOV_Config.TweenInfo, {FieldOfView = FOV_Config.FOVS.NormalFOV}):Play() -- animate the FOV to normal
+	
+	--debugging
 	print("Not aiming")
 end
 
