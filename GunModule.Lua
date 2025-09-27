@@ -263,7 +263,7 @@ end
 
 --Used for getting the gun's current ammo
 function GunModule:GetAmmo()
-	if not self:EquippedModel() then return end -- checking if the gun is equipped
+	if not self.EquippedModel then return end -- checking if the gun is equipped
 
 	return self.CurrentAmmo
 end
